@@ -2,8 +2,42 @@ import math
 from random import normalvariate
 
 import numpy as np
-import pandas as pd
 from sympy import Segment, Point
+
+from points import Point2D
+
+
+def true_angle(angle: float, max_value: int) -> float:
+    """
+    Возвращает верное значение угла
+    :param angle: Угол
+    :param max_value: Максимальное допустимое значение (180, 360)
+    :return: Верное значение угла
+    """
+    if angle > max_value:
+        return angle - max_value
+    elif angle < 0:
+        return angle + max_value
+    else:
+        return angle
+
+
+def from_h_to_d(hours: float) -> float:
+    """
+    Трансформирует угол из часовой меры в угловую
+    :param hours: Угол в часовой мере
+    :return: Угол в градусной мере
+    """
+    return hours * 15
+
+
+def from_d_to_h(degrees: float) -> float:
+    """
+    Трансформирует угол из градусной меры в часовую
+    :param degrees: Угол в градусной мере
+    :return: Угол в часовой мере
+    """
+    return degrees / 15
 
 
 def to_degrees(degrees: int, minutes: float, seconds: float = 0) -> float:
@@ -29,17 +63,15 @@ def to_d_m_s(degrees: float) -> tuple:
     return d, m, s
 
 
-def ogz_points(xa: float, ya: float, xb: float, yb: float) -> tuple:
+def ogz_points(point_a: Point2D, point_b: Point2D) -> tuple:
     """
     Обратная геодезическая задача для координат пунктов
-    :param xa: Координата х первого пункта линии
-    :param ya: Координата у первого пункта линии
-    :param xb: Координата х второго пункта линии
-    :param yb: Координата у второго пункта линии
-    :return: Кортеж (градусы, минуты, секунды, горизонтальное проложение)
+    :param point_a: Начальная точка
+    :param point_b: Конечная точка
+    :return: Кортеж (дирекционный угол, горизонтальное проложение)
     """
-    delx = xb - xa
-    dely = yb - ya
+    delx = point_b.x - point_a.x
+    dely = point_b.y - point_a.y
     s = math.sqrt(delx ** 2 + dely ** 2)
 
     if dely == 0 and delx > 0:
@@ -61,11 +93,7 @@ def ogz_points(xa: float, ya: float, xb: float, yb: float) -> tuple:
             alf = 180 + rumb
         elif delx > 0 and dely < 0:
             alf = 360 - rumb
-
-    g = math.trunc(alf)
-    m = math.trunc((alf - g) * 60)
-    c = round(((alf - g) - m / 60) * 60 * 60)
-    return g, m, c, s
+    return alf, s
 
 
 def ogz_delta(dx: float, dy: float) -> tuple:
@@ -99,22 +127,21 @@ def ogz_delta(dx: float, dy: float) -> tuple:
     return alf, s
 
 
-def pgz(x1: float, y1: float, g: int, m: int, c: float, s: float) -> tuple:
+def pgz(point: Point2D, degrees: int, minutes: int, seconds: float, horizontal_laying: float) -> Point2D:
     """
     Прямая геодезическая задача
-    :param x1: Координата х пункта
-    :param y1: Координата у пункта
-    :param g: Дирекционный угол (градусы)
-    :param m: Дирекционный угол (минуты)
-    :param c: Дирекционный угол (секунды)
-    :param s: Горизонтальное проложение
-    :return: Кортеж координат вычисляемого пункта
+    :param point: Начальная точка
+    :param degrees: Дирекционный угол (градусы)
+    :param minutes: Дирекционный угол (минуты)
+    :param seconds: Дирекционный угол (секунды)
+    :param horizontal_laying: Горизонтальное проложение
+    :return: Точка на плоскости
     """
-    angle = g + m / 60 + c / (60 * 60)
+    angle = degrees + minutes / 60 + seconds / (60 * 60)
     angle = math.radians(angle)
-    x2 = x1 + s * math.cos(angle)
-    y2 = y1 + s * math.sin(angle)
-    return x2, y2
+    x = point.x + horizontal_laying * math.cos(angle)
+    y = point.y + horizontal_laying * math.sin(angle)
+    return Point2D(x, y)
 
 
 def polygon_square(points: list) -> float:
@@ -164,18 +191,18 @@ def intersection_of_segments(p1_x: Point, p1_y: Point, p2_x: Point, p2_y: Point)
     :param p2_y: Вторая точка второго отрезка
     :return: Кортеж координат точки пересечения отрезков
     """
-    s1 = Segment(p1_y, p1_x)
-    s2 = Segment(p2_y, p2_x)
+    s1 = Segment(p1_x, p1_y)
+    s2 = Segment(p2_x, p2_y)
     intersection = s1.intersection(s2)
     if len(intersection) != 0:
         intersection = intersection[0]
-        return float(intersection.y), float(intersection.x)
+        return float(intersection.x), float(intersection.y)
     else:
-        return 0, 0
+        return None, None
 
 
 def adjustment_traverse(first_directional_angle: float, last_directional_angle: float, angles: list,
-                        horizontal_layings: list, first_point: list, last_point: list, left_angle=True) -> pd.DataFrame:
+                        horizontal_layings: list, first_point: list, last_point: list, left_angle=True) -> tuple:
     """
     Раздельный метод уравнивание теодолитного хода
     :param first_directional_angle: Дирекционный угол исходной линии хода
@@ -236,9 +263,7 @@ def adjustment_traverse(first_directional_angle: float, last_directional_angle: 
     y_coordinates.append(round(first_point[1] + corrected_delta_y[0], 3))
     for i in range(len(corrected_delta_y) - 2):
         y_coordinates.append(y_coordinates[i] + corrected_delta_y[i + 1])
-    coordinates_of_traverse = pd.DataFrame()
-    coordinates_of_traverse['x'] = x_coordinates
-    coordinates_of_traverse['y'] = y_coordinates
+    coordinates_of_traverse = (x_coordinates, y_coordinates)
     return coordinates_of_traverse
 
 
