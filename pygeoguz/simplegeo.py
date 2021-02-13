@@ -4,7 +4,44 @@ from random import normalvariate
 import numpy as np
 from sympy import Segment, Point
 
-from points import Point2D
+from .points import Point2D
+
+
+def ground(number: float, n: int = 0) -> float:
+    """
+    Округление по Гауссу
+    :param number: Число для округления
+    :param n: Количество знаков после запятой (по умолчанию = 0)
+    :return: Округленное число
+    """
+    if n < 0:
+        raise ValueError
+
+    def is_odd(num) -> bool:
+        """
+        Нечетное ли число?
+        """
+        if num % 2 == 0:
+            return False
+        else:
+            return True
+
+    number = round(number, n + 1)
+    string = str(number).split('.')
+    before, after = list(string[0]), list(string[1])
+
+    if after[n] != '5':
+        return round(number, n)
+    else:
+        if n != 0:
+            if is_odd(int(after[n - 1])):
+                after[n - 1] = str(int(after[n - 1]) + 1)
+            del after[n]
+            return float(f"{''.join(before)}.{''.join(after)}")
+        else:
+            if is_odd(int(before[-1])):
+                before[-1] = str(int(before[-1]) + 1)
+            return float(f"{''.join(before)}.0")
 
 
 def true_angle(angle: float, max_value: int) -> float:
@@ -51,7 +88,7 @@ def to_degrees(degrees: int, minutes: float, seconds: float = 0) -> float:
     return degrees + minutes / 60 + seconds / 3600
 
 
-def to_d_m_s(degrees: float) -> tuple:
+def to_dms(degrees: float) -> tuple:
     """
     Преобразвоание d -> dms
     :param degrees: Градусы
