@@ -30,6 +30,10 @@ def ground(number: float, n: int = 0) -> float:
     string = str(number).split('.')
     before, after = list(string[0]), list(string[1])
 
+    if len(after) - n <= 0:
+        need_to_add = abs(len(after) - n) + 1
+        after += ['0'] * need_to_add
+
     if after[n] != '5':
         return round(number, n)
     else:
