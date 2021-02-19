@@ -59,6 +59,17 @@ def true_angle(angle: float, max_value: int) -> float:
         return angle
 
 
+def left_angle(dir_a: float, dir_b: float) -> float:
+    """
+    Вычисление левых углов хода
+    :param dir_a: Начальный дир угол
+    :param dir_b: Конечный дир угол
+    :return: Левый горизонтальный угол хода
+    """
+    angle = dir_b - dir_a + 180
+    return true_angle(angle, 360)
+    
+
 def from_h_to_d(hours: float) -> float:
     """
     Трансформирует угол из часовой меры в угловую
@@ -88,15 +99,16 @@ def to_degrees(degrees: int, minutes: float, seconds: float = 0) -> float:
     return degrees + minutes / 60 + seconds / 3600
 
 
-def to_dms(degrees: float) -> tuple:
+def to_dms(degrees: float, n_sec: int = 0) -> tuple:
     """
     Преобразвоание d -> dms
+    :param n_sec: Количество знаков после заяртой у значения секунд
     :param degrees: Градусы
     :return: Кортеж (градусы, минуты, секунды)
     """
     d = math.trunc(degrees)
     m = math.trunc((degrees - d) * 60)
-    s = round(((degrees - d) - m / 60) * 60 * 60)
+    s = ground(((degrees - d) - m / 60) * 60 * 60, n_sec)
     return d, m, s
 
 
