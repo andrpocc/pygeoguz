@@ -92,8 +92,20 @@ class EquationSystem:
 
 
 class TraverseAdjustment:
+    """
+    Уравнивание простого теодолитного хода
+    """
     def __init__(self, first_dir_angle: float, last_dir_angle: float, angles: list, layings: list, first_point: Point2D,
                  last_point: Point2D, left_angles=True):
+        """
+        :param first_dir_angle: Начальный дир угол
+        :param last_dir_angle: Последний дир угол
+        :param angles: Список гор углов
+        :param layings: Список горизонтальных проложений
+        :param first_point: Начаьльная точка хода
+        :param last_point: Последяя точка хода
+        :param left_angles: Левые горизонтальные углы?
+        """
         self.first_dir_angle = first_dir_angle
         self.last_dir_angle = last_dir_angle
         self.angles = np.array(angles)
@@ -104,6 +116,10 @@ class TraverseAdjustment:
         self.count_of_angles = len(angles)
 
     def _calc_theory_angles_sum(self) -> float:
+        """
+        Расчет теоритической суммы гор углов в зависимости от измеряемых ушлов (левые-правые)
+        :return: Теоритическая сумма
+        """
         if self.left_angles:
             theory_sum = self.last_dir_angle - self.first_dir_angle + 180 * self.count_of_angles
         else:
@@ -111,6 +127,11 @@ class TraverseAdjustment:
         return theory_sum
 
     def _calc_corrected_angles(self, theory_sum: float) -> np.ndarray:
+        """
+        Расчет горизонтальных углов с введенными поправками
+        :param theory_sum: Теоритическая сумма гор углов
+        :return: Массив гор углов с поправками
+        """
         practical_sum_of_angles = np.sum(self.angles)
         angular_residual = practical_sum_of_angles - theory_sum
         correction = -angular_residual / self.count_of_angles
@@ -118,6 +139,10 @@ class TraverseAdjustment:
         return corrected_angles
 
     def _calc_dir_angles(self) -> np.ndarray:
+        """
+        Расчет дир углов хода
+        :return: Массив дир углов
+        """
         dir_angles = list()
         if self.left_angles:
             dir_angles.append(self.first_dir_angle + self.angles[0] - 180)
@@ -132,11 +157,21 @@ class TraverseAdjustment:
         return np.array(dir_angles)
 
     def _calc_deltas(self, dir_angles: np.ndarray) -> typing.Tuple[np.ndarray, np.ndarray]:
+        """
+        Расчет приразений координат по дир углам хода
+        :param dir_angles: Дир углы
+        :return: Прирахения по координатам X и Y
+        """
         deltas_x: np.ndarray = self.layings * np.cos(np.radians(dir_angles))
         deltas_y: np.ndarray = self.layings * np.sin(np.radians(dir_angles))
         return deltas_x, deltas_y
 
     def _calc_corrected_deltas(self, dir_angles: np.ndarray) -> typing.Tuple[np.ndarray, np.ndarray]:
+        """
+        Расчет приращений координат с введенными поправками
+        :param dir_angles: Дир углы хода
+        :return: Приращения по координатам X и Y с поправками
+        """
         deltas_x, deltas_y = self._calc_deltas(dir_angles)
         theory_sum_of_deltas_x = self.last_point.x - self.first_point.x
         theory_sum_of_deltas_y = self.last_point.y - self.first_point.y
@@ -153,6 +188,12 @@ class TraverseAdjustment:
 
     def _calc_coordinates(self, deltas_x: np.ndarray, deltas_y: np.ndarray) -> typing.Tuple[
                             typing.List[float], typing.List[float]]:
+        """
+        Расчет координат пунктов хода
+        :param deltas_x: Приращения по X
+        :param deltas_y: Приращения по Y
+        :return: X и Y координаты хода
+        """
 
         x_coordinates = list()
         x_coordinates.append(self.first_point.x + deltas_x[0])
@@ -168,6 +209,10 @@ class TraverseAdjustment:
         return x_coordinates, y_coordinates
 
     def adjust(self) -> typing.List[Point2D]:
+        """
+        Раздельное уравнивание простого теодеолитного хода
+        :return: Уравненные координаты пунктов хода
+        """
         self.angles = self._calc_corrected_angles(theory_sum=self._calc_theory_angles_sum())
         deltas_x, deltas_y = self._calc_corrected_deltas(dir_angles=self._calc_dir_angles())
         x_coordinates, y_coordinates = self._calc_coordinates(deltas_x, deltas_y)

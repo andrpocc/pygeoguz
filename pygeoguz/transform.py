@@ -6,6 +6,11 @@ from .points import PointBL, Point2D, Point3D
 
 
 def pz2wgs(point: Point3D) -> Point3D:
+    """
+    Преобразование координат точки из СК ПЗ-90 в СК WGS-84
+    :param point: Точка в СК ПЗ-90
+    :return: Точка в СК WGS-84
+    """
     koeff_m = 1 - 0.12e-6
     rotation = np.array([
         [1, -0.9696e-6, 0],
@@ -19,6 +24,11 @@ def pz2wgs(point: Point3D) -> Point3D:
 
 
 def wgs2pz(point: Point3D) -> Point3D:
+    """
+    Преобразование координат точки из СК WGS-84 в СК ПЗ-90
+    :param point: Точка в СК WGS-84
+    :return: Точка в СК ПЗ-90
+    """
     koeff_m = 1 + 0.12e-6
     rotation = np.array([
         [1, 0.9696e-6, 0],
@@ -32,6 +42,11 @@ def wgs2pz(point: Point3D) -> Point3D:
 
 
 def bl2xy(point: PointBL) -> Point2D:
+    """
+    Преобразование координат точки из геодезической СК в плоскую прямоугольную СК Гаусса-Крюгера
+    :param point: Точка в геодезической СК
+    :return: Точка в плоской прямоуголькой СК Гаусса-Крюгера
+    """
     number_of_zone = int(round((6 + point.l) / 6, 2))
 
     l = radians((point.l - (3 + 6 * (number_of_zone - 1))))
@@ -52,6 +67,11 @@ def bl2xy(point: PointBL) -> Point2D:
 
 
 def xy2bl(point: Point2D) -> PointBL:
+    """
+    Преобразование координат точки из плоской прямоугольной СК Гаусса-Крюгера в геодезическую СК
+    :param point: очка в плоской прямоуголькой СК Гаусса-Крюгера
+    :return: Точка в геодезической СК
+    """
     number_of_zone = int(round(point.y * 10**(-6), 2))
 
     betta = point.x / 6367558.4968
