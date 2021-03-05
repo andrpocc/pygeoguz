@@ -1,17 +1,18 @@
-class Point3D:
-    def __init__(self, x, y, z):
-        self.x = x
-        self.y = y
-        self.z = z
+from dataclasses import dataclass
 
 
+@dataclass
 class Point2D:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
+    x: float
+    y: float
 
 
+@dataclass
+class Point3D(Point2D):
+    z: float
+
+
+@dataclass
 class PointBL:
-    def __init__(self, b, l):
-        self.b = b
-        self.l = l
+    b: float
+    l: float

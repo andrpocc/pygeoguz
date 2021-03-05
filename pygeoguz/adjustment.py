@@ -1,6 +1,9 @@
 import math
-
+import typing
 import numpy as np
+
+from .points import Point2D
+from .simplegeo import true_angle
 
 
 class EquationSystem:
@@ -87,3 +90,87 @@ class EquationSystem:
         nu = norma_a * norma_a_inv
         return nu
 
+
+class TraverseAdjustment:
+    def __init__(self, first_dir_angle: float, last_dir_angle: float, angles: list, layings: list, first_point: Point2D,
+                 last_point: Point2D, left_angles=True):
+        self.first_dir_angle = first_dir_angle
+        self.last_dir_angle = last_dir_angle
+        self.angles = np.array(angles)
+        self.layings: np.ndarray = np.array(layings)
+        self.first_point = first_point
+        self.last_point = last_point
+        self.left_angles = left_angles
+        self.count_of_angles = len(angles)
+
+    def _calc_theory_angles_sum(self) -> float:
+        if self.left_angles:
+            theory_sum = self.last_dir_angle - self.first_dir_angle + 180 * self.count_of_angles
+        else:
+            theory_sum = self.first_dir_angle - self.last_dir_angle + 180 * self.count_of_angles
+        return theory_sum
+
+    def _calc_corrected_angles(self, theory_sum: float) -> np.ndarray:
+        practical_sum_of_angles = np.sum(self.angles)
+        angular_residual = practical_sum_of_angles - theory_sum
+        correction = -angular_residual / self.count_of_angles
+        corrected_angles = self.angles + correction
+        return corrected_angles
+
+    def _calc_dir_angles(self) -> np.ndarray:
+        dir_angles = list()
+        if self.left_angles:
+            dir_angles.append(self.first_dir_angle + self.angles[0] - 180)
+            for i in range(self.count_of_angles - 2):
+                dir_angle = dir_angles[i] + self.angles[i + 1] - 180
+                dir_angles.append(true_angle(dir_angle, 360))
+        else:
+            dir_angles.append(self.first_dir_angle - self.angles[0] + 180)
+            for i in range(self.count_of_angles - 2):
+                dir_angles = dir_angles[i] - self.angles[i + 1] + 180
+                dir_angles.append(dir_angles[i] - self.angles[i + 1] + 180)
+        return np.array(dir_angles)
+
+    def _calc_deltas(self, dir_angles: np.ndarray) -> typing.Tuple[np.ndarray, np.ndarray]:
+        deltas_x: np.ndarray = self.layings * np.cos(np.radians(dir_angles))
+        deltas_y: np.ndarray = self.layings * np.sin(np.radians(dir_angles))
+        return deltas_x, deltas_y
+
+    def _calc_corrected_deltas(self, dir_angles: np.ndarray) -> typing.Tuple[np.ndarray, np.ndarray]:
+        deltas_x, deltas_y = self._calc_deltas(dir_angles)
+        theory_sum_of_deltas_x = self.last_point.x - self.first_point.x
+        theory_sum_of_deltas_y = self.last_point.y - self.first_point.y
+        practical_sum_of_deltas_x = np.sum(deltas_x)
+        practical_sum_of_deltas_y = np.sum(deltas_y)
+        delta_x_residual = practical_sum_of_deltas_x - theory_sum_of_deltas_x
+        delta_y_residual = practical_sum_of_deltas_y - theory_sum_of_deltas_y
+        sum_of_layings = np.sum(self.layings)
+        correction_to_deltas_x = -delta_x_residual * self.layings / sum_of_layings
+        correction_to_deltas_y = -delta_y_residual * self.layings / sum_of_layings
+        corrected_delta_x = np.round(deltas_x + correction_to_deltas_x, 3)
+        corrected_delta_y = np.round(deltas_y + correction_to_deltas_y, 3)
+        return corrected_delta_x, corrected_delta_y
+
+    def _calc_coordinates(self, deltas_x: np.ndarray, deltas_y: np.ndarray) -> typing.Tuple[
+                            typing.List[float], typing.List[float]]:
+
+        x_coordinates = list()
+        x_coordinates.append(self.first_point.x + deltas_x[0])
+        count_of_deltas = len(deltas_x)
+        for i in range(count_of_deltas - 2):
+            x_coordinates.append(x_coordinates[i] + deltas_x[i + 1])
+
+        y_coordinates = list()
+        y_coordinates.append(self.first_point.y + deltas_y[0])
+        for i in range(count_of_deltas - 2):
+            y_coordinates.append(y_coordinates[i] + deltas_y[i + 1])
+
+        return x_coordinates, y_coordinates
+
+    def adjust(self) -> typing.List[Point2D]:
+        self.angles = self._calc_corrected_angles(theory_sum=self._calc_theory_angles_sum())
+        deltas_x, deltas_y = self._calc_corrected_deltas(dir_angles=self._calc_dir_angles())
+        x_coordinates, y_coordinates = self._calc_coordinates(deltas_x, deltas_y)
+
+        points = [Point2D(x, y) for x, y in zip(x_coordinates, y_coordinates)]
+        return points
