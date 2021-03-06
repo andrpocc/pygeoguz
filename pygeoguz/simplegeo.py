@@ -1,13 +1,12 @@
 import math
 from random import normalvariate
 
-import numpy as np
 from sympy import Segment, Point
 
-from .points import Point2D
+from pygeoguz.points import Point2D
 
 
-def ground(number: float, n: int = 0) -> float:
+def _ground(number: float, n: int = 0) -> float:
     """
     Округление по Гауссу
     :param number: Число для округления
@@ -25,27 +24,65 @@ def ground(number: float, n: int = 0) -> float:
             return False
         else:
             return True
-
+    # Предварительное округление до знака n+1
     number = round(number, n + 1)
     string = str(number).split('.')
     before, after = list(string[0]), list(string[1])
-
+    # Добавление недостающих до разряда округления цифр
     if len(after) - n <= 0:
         need_to_add = abs(len(after) - n) + 1
         after += ['0'] * need_to_add
-
+    #
     if after[n] != '5':
         return round(number, n)
     else:
         if n != 0:
-            if is_odd(int(after[n - 1])):
-                after[n - 1] = str(int(after[n - 1]) + 1)
-            del after[n]
-            return float(f"{''.join(before)}.{''.join(after)}")
+            rounding_fractional = int(after[n - 1])
+            if is_odd(rounding_fractional):
+                return math.ceil(number * 10**n) / 10**n
+            return math.floor(number * 10**n) / 10**n
+
         else:
-            if is_odd(int(before[-1])):
-                before[-1] = str(int(before[-1]) + 1)
-            return float(f"{''.join(before)}.0")
+            last_integer = int(before[-1])
+            if is_odd(last_integer):
+                return math.ceil(number)
+            return math.floor(number)
+
+
+def ground(number: float, n: int = 0) -> float:
+    """
+    Округление по Гауссу
+    :param number: Число для округления
+    :param n: Количество знаков после запятой (по умолчанию = 0)
+    :return: Округленное число
+    """
+    if n < 0:
+        raise ValueError
+
+    def is_odd(num) -> bool:
+        """
+        Нечетное ли число?
+        """
+        return False if num % 2 == 0 else True
+
+    def is_five(num, order) -> bool:
+        """
+        Проверяем разрядное число на равенство 5
+        """
+        num = num * 10**order
+        five = (num - math.trunc(num)) * 10
+        return True if five == 5 else False
+
+    # Предварительное округление до n+1
+    number = round(number, n + 1)
+
+    if is_five(number, n):
+        if is_odd(math.trunc(number * 10**n)):
+            # Повышение
+            return math.ceil(number * 10**n) / 10**n
+        # Понижение
+        return math.floor(number * 10**n) / 10**n
+    return round(number, n)
 
 
 def true_angle(angle: float, max_value: int) -> float:
@@ -112,7 +149,7 @@ def to_dms(degrees: float, n_sec: int = 0) -> tuple:
     """
     d = math.trunc(degrees)
     m = math.trunc((degrees - d) * 60)
-    s = ground(((degrees - d) - m / 60) * 60 * 60, n_sec)
+    s = round(((degrees - d) - m / 60) * 60 * 60, n_sec)
     return d, m, s
 
 
