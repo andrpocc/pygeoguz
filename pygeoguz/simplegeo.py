@@ -3,7 +3,7 @@ from random import normalvariate
 
 from sympy import Segment, Point
 
-from pygeoguz.points import Point2D
+from pygeoguz.objects import Point2D, Line2D, Angle
 
 
 def _ground(number: float, n: int = 0) -> float:
@@ -140,7 +140,7 @@ def to_degrees(degrees: int, minutes: float, seconds: float = 0) -> float:
     return degrees + minutes / 60 + seconds / 3600
 
 
-def to_dms(degrees: float, n_sec: int = 0) -> tuple:
+def to_dms(degrees: float, n_sec: int = 0) -> Angle:
     """
     Преобразвоание d -> dms
     :param n_sec: Количество знаков после заяртой у значения секунд
@@ -149,11 +149,11 @@ def to_dms(degrees: float, n_sec: int = 0) -> tuple:
     """
     d = math.trunc(degrees)
     m = math.trunc((degrees - d) * 60)
-    s = round(((degrees - d) - m / 60) * 60 * 60, n_sec)
-    return d, m, s
+    s = ground(((degrees - d) - m / 60) * 60 * 60, n_sec)
+    return Angle(d, m, s)
 
 
-def ogz_points(point_a: Point2D, point_b: Point2D) -> tuple:
+def ogz(point_a: Point2D, point_b: Point2D) -> Line2D:
     """
     Обратная геодезическая задача для координат пунктов
     :param point_a: Начальная точка
@@ -183,38 +183,7 @@ def ogz_points(point_a: Point2D, point_b: Point2D) -> tuple:
             alf = 180 + rumb
         elif delx > 0 and dely < 0:
             alf = 360 - rumb
-    return alf, s
-
-
-def ogz_delta(dx: float, dy: float) -> tuple:
-    """
-    Обратная геодезическая задача для приращений координат
-    :param dx: Приращение по х
-    :param dy: Приращенеи по у
-    :return: Кортеж (дирекционный угол, горизонтальное приложение)
-    """
-    delx = dx
-    dely = dy
-    s = math.sqrt(delx ** 2 + dely ** 2)
-    if dely == 0 and delx > 0:
-        alf = 0
-    elif dely == 0 and delx < 0:
-        alf = 180
-    elif delx == 0 and dely > 0:
-        alf = 90
-    elif delx == 0 and dely < 0:
-        alf = 270
-    else:
-        rumb = math.fabs(math.degrees(math.atan(dely / delx)))
-        if delx > 0 and dely > 0:
-            alf = rumb
-        elif delx < 0 and dely > 0:
-            alf = 180 - rumb
-        elif delx < 0 and dely < 0:
-            alf = 180 + rumb
-        elif delx > 0 and dely < 0:
-            alf = 360 - rumb
-    return alf, s
+    return Line2D(s, alf)
 
 
 def pgz(point: Point2D, degrees: int, minutes: int, seconds: float, horizontal_laying: float) -> Point2D:

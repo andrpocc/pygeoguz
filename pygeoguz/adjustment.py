@@ -2,7 +2,7 @@ import math
 import typing
 import numpy as np
 
-from .points import Point2D
+from .objects import Point2D
 from .simplegeo import true_angle
 
 

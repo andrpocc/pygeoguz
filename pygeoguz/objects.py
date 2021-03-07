@@ -25,3 +25,16 @@ class PointBL:
     """
     b: float
     l: float
+
+
+@dataclass
+class Line2D:
+    length: float
+    direction: float
+
+
+@dataclass
+class Angle:
+    degrees: int
+    minutes: int
+    seconds: float

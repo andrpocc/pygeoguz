@@ -2,7 +2,7 @@ from math import sin, cos, radians, degrees
 
 import numpy as np
 
-from .points import PointBL, Point2D, Point3D
+from .objects import PointBL, Point2D, Point3D
 
 
 def pz2wgs(point: Point3D) -> Point3D:
