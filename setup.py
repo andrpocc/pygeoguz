@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="pygeoguz",
-    version="0.0.3",
+    version="0.0.4",
     author="Andrey Pochatkov",
     author_email="andrey.pochatkov@mail.ru",
     description="Solution of the geodesy tasks in Python",
