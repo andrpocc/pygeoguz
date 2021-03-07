@@ -1,5 +1,6 @@
 import math
 from random import normalvariate
+import typing
 
 from sympy import Segment, Point
 
@@ -129,15 +130,13 @@ def from_d_to_h(degrees: float) -> float:
     return degrees / 15
 
 
-def to_degrees(degrees: int, minutes: float, seconds: float = 0) -> float:
+def to_degrees(angle: Angle) -> float:
     """
     Преобразование dms -> d
-    :param degrees: Градусы
-    :param minutes: Минуты
-    :param seconds: Секунды
-    :return: Градусы
+    :param angle: Угол в градумсах минутах и секундах
+    :return: Угол в градусах
     """
-    return degrees + minutes / 60 + seconds / 3600
+    return angle.degrees + angle.minutes / 60 + angle.seconds / 3600
 
 
 def to_dms(degrees: float, n_sec: int = 0) -> Angle:
@@ -155,90 +154,68 @@ def to_dms(degrees: float, n_sec: int = 0) -> Angle:
 
 def ogz(point_a: Point2D, point_b: Point2D) -> Line2D:
     """
-    Обратная геодезическая задача для координат пунктов
+    Обратная геодезическая задача
     :param point_a: Начальная точка
     :param point_b: Конечная точка
-    :return: Кортеж (дирекционный угол, горизонтальное проложение)
+    :return: Направлние
     """
-    delx = point_b.x - point_a.x
-    dely = point_b.y - point_a.y
-    s = math.sqrt(delx ** 2 + dely ** 2)
+    delta_x = point_b.x - point_a.x
+    delta_y = point_b.y - point_a.y
+    length = math.sqrt(delta_x ** 2 + delta_y ** 2)
 
-    if dely == 0 and delx > 0:
-        alf = 0
-    elif dely == 0 and delx < 0:
-        alf = 180
-    elif delx == 0 and dely > 0:
-        alf = 90
-    elif delx == 0 and dely < 0:
-        alf = 270
-    else:
-        rumb = math.fabs(math.degrees(math.atan(dely / delx)))
-
-        if delx > 0 and dely > 0:
-            alf = rumb
-        elif delx < 0 and dely > 0:
-            alf = 180 - rumb
-        elif delx < 0 and dely < 0:
-            alf = 180 + rumb
-        elif delx > 0 and dely < 0:
-            alf = 360 - rumb
-    return Line2D(s, alf)
+    direction = math.degrees(math.atan2(delta_y, delta_x))
+    true_direction = true_angle(direction, 360)
+    return Line2D(length, true_direction)
 
 
-def pgz(point: Point2D, degrees: int, minutes: int, seconds: float, horizontal_laying: float) -> Point2D:
+def pgz(point: Point2D, line: Line2D) -> Point2D:
     """
     Прямая геодезическая задача
-    :param point: Начальная точка
-    :param degrees: Дирекционный угол (градусы)
-    :param minutes: Дирекционный угол (минуты)
-    :param seconds: Дирекционный угол (секунды)
-    :param horizontal_laying: Горизонтальное проложение
-    :return: Точка на плоскости
+    :param point: Первая точка отрезка
+    :param line: Направление
+    :return: Вторая точка отрезка
     """
-    angle = degrees + minutes / 60 + seconds / (60 * 60)
-    angle = math.radians(angle)
-    x = point.x + horizontal_laying * math.cos(angle)
-    y = point.y + horizontal_laying * math.sin(angle)
+    angle = line.direction
+    angle_rad = math.radians(angle)
+    x = point.x + line.length * math.cos(angle_rad)
+    y = point.y + line.length * math.sin(angle_rad)
     return Point2D(x, y)
 
 
-def polygon_square(points: list) -> float:
+def polygon_square(points: typing.List[Point2D]) -> float:
     """
     Площадь полигона по координатам его вершин
     Формула Гаусса
-    :param points: Список координат вершин полигона
-    :return: Значение площади
+    :param points: Список точек вершин ролигона
+    :return: Площадь полигона
     """
     sx = 0
     sy = 0
     n = len(points)
     for i in range(n):
         if i != n - 1:
-            sx += points[i][0] * points[i + 1][1]
+            sx += points[i].x * points[i + 1].y
         elif i == n - 1:
-            sx += points[i][0] * points[0][1]
+            sx += points[i].x * points[0].y
     for i in range(n):
         if i != n - 1:
-            sy -= points[i][1] * points[i + 1][0]
+            sy -= points[i].y * points[i + 1].x
         elif i == n - 1:
-            sy -= points[i][1] * points[0][0]
+            sy -= points[i].y * points[0].x
     square = math.fabs(sx + sy) / 2
     return square
 
 
-def midpoint(x1: float, y1: float, x2: float, y2: float) -> tuple:
+def midpoint(point_1: Point2D, point_2: Point2D) -> Point2D:
     """
     Координаты середины отрезка
-    :param x1: Координата х первого пункта
-    :param y1: Координата у первого пункта
-    :param x2: Координата х второго пункта
-    :param y2: Координата у второго пункта
-    :return: Кортеж координат середины отрезка
+    :param point_1: Первая точка отрезка
+    :param point_2: Вторая точка отрезка
+    :return: Точка середины отрезка
     """
-    xm = (x1 + x2) / 2
-    ym = (y1 + y2) / 2
-    return xm, ym
+    xm = (point_1.x + point_2.x) / 2
+    ym = (point_1.y + point_2.y) / 2
+    return Point2D(xm, ym)
 
 
 def intersection_of_segments(p1_x: Point, p1_y: Point, p2_x: Point, p2_y: Point) -> tuple:
@@ -260,7 +237,7 @@ def intersection_of_segments(p1_x: Point, p1_y: Point, p2_x: Point, p2_y: Point)
         return None, None
 
 
-def generate_errors(mu: float, count: int) -> list:
+def generate_errors(mu: float, count: int) -> typing.List[float]:
     """
     Генерация списка псевдослучайных ошибок,
     подчиняющихся нормальному закону распределения

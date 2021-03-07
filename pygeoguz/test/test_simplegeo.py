@@ -20,4 +20,3 @@ def test_ground():
     assert ground(38.575, 2) == 38.58
     assert ground(38.579, 2) == 38.58
     assert ground(38.595, 2) == 38.60
-
