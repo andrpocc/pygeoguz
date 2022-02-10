@@ -11,10 +11,12 @@ class EquationSystem:
     Система линейных уравнений, класс для решения системы матричным способом
     """
 
-    def __init__(self,
-                 a_matrix: np.ndarray,
-                 l_matrix: np.ndarray = None,
-                 p_matrix: np.ndarray = None):
+    def __init__(
+        self,
+        a_matrix: np.ndarray,
+        l_matrix: np.ndarray = None,
+        p_matrix: np.ndarray = None,
+    ):
 
         self._a_matrix = a_matrix
         self._l_matrix = l_matrix
@@ -23,6 +25,7 @@ class EquationSystem:
     def normalize(self) -> tuple:
         """
         Приведение системы линейных уравнений к нормальному виду
+
         :return: Нормальная матрица A, Нормальная матрица L
         """
         # Проверка системы на неравноточные измерения
@@ -30,7 +33,7 @@ class EquationSystem:
             rows, _ = np.shape(self._a_matrix)
             self._p_matrix = np.eye(rows)
 
-        # Приведении системы уравнений к нормальному виду
+        # Приведение системы уравнений к нормальному виду
         a_matrix_transposed = self._a_matrix.transpose()
         normal_coefficient = a_matrix_transposed.dot(self._p_matrix)
         normal_a_matrix = normal_coefficient.dot(self._a_matrix)
@@ -43,7 +46,8 @@ class EquationSystem:
     def solve(self) -> tuple:
         """
         Решение системы нормальных уравнений и вычисление вектора поправок
-        :return: Матрица неизвестных нормальных уравнений X, Решение исходной системы уоавнений V
+
+        :return: Матрица неизвестных нормальных уравнений X, Решение исходной системы уравнений V
         """
         normal_a_matrix, normal_l_matrix = self.normalize()
         if normal_l_matrix is not None:
@@ -58,6 +62,7 @@ class EquationSystem:
     def errors(self, extra_measures: int) -> np.ndarray:
         """
         Вычисление ковариационной матрицы системы нормальных линейных уравнений
+
         :return: Ковариационная матрица К
         """
         # Оценка точности решения системы нормальных уравнений
@@ -81,10 +86,11 @@ class EquationSystem:
     def condition(self) -> float:
         """
         Вычисление числа обусловленности задачи
+
         :return: nu
         """
         normal_a_matrix, _ = self.normalize()
-        # Эвквидова норма матриц А и А-1
+        # Евклидова норма матриц А и А-1
         norma_a = math.sqrt(np.sum(normal_a_matrix ** 2))
         norma_a_inv = math.sqrt(np.sum(np.linalg.inv(normal_a_matrix) ** 2))
         nu = norma_a * norma_a_inv
@@ -95,15 +101,24 @@ class TraverseAdjustment:
     """
     Уравнивание простого теодолитного хода
     """
-    def __init__(self, first_dir_angle: float, last_dir_angle: float, angles: list, layings: list, first_point: Point2D,
-                 last_point: Point2D, left_angles=True):
+
+    def __init__(
+        self,
+        first_dir_angle: float,
+        last_dir_angle: float,
+        angles: list,
+        layings: list,
+        first_point: Point2D,
+        last_point: Point2D,
+        left_angles=True,
+    ):
         """
         :param first_dir_angle: Начальный дир угол
         :param last_dir_angle: Последний дир угол
         :param angles: Список гор углов
         :param layings: Список горизонтальных проложений
-        :param first_point: Начаьльная точка хода
-        :param last_point: Последяя точка хода
+        :param first_point: Начальная точка хода
+        :param last_point: Последняя точка хода
         :param left_angles: Левые горизонтальные углы?
         """
         self.first_dir_angle = first_dir_angle
@@ -117,19 +132,25 @@ class TraverseAdjustment:
 
     def _calc_theory_angles_sum(self) -> float:
         """
-        Расчет теоритической суммы гор углов в зависимости от измеряемых ушлов (левые-правые)
-        :return: Теоритическая сумма
+        Расчет теоретической суммы гор углов в зависимости от измеряемых углов (левые-правые)
+        :return: Теоретическая сумма
         """
         if self.left_angles:
-            theory_sum = self.last_dir_angle - self.first_dir_angle + 180 * self.count_of_angles
+            theory_sum = (
+                self.last_dir_angle - self.first_dir_angle + 180 * self.count_of_angles
+            )
         else:
-            theory_sum = self.first_dir_angle - self.last_dir_angle + 180 * self.count_of_angles
+            theory_sum = (
+                self.first_dir_angle - self.last_dir_angle + 180 * self.count_of_angles
+            )
         return theory_sum
 
     def _calc_corrected_angles(self, theory_sum: float) -> np.ndarray:
         """
         Расчет горизонтальных углов с введенными поправками
-        :param theory_sum: Теоритическая сумма гор углов
+
+        :param theory_sum: Теоретическая сумма гор углов
+
         :return: Массив гор углов с поправками
         """
         practical_sum_of_angles = np.sum(self.angles)
@@ -141,6 +162,7 @@ class TraverseAdjustment:
     def _calc_dir_angles(self) -> np.ndarray:
         """
         Расчет дир углов хода
+
         :return: Массив дир углов
         """
         dir_angles = list()
@@ -156,20 +178,28 @@ class TraverseAdjustment:
                 dir_angles.append(dir_angles[i] - self.angles[i + 1] + 180)
         return np.array(dir_angles)
 
-    def _calc_deltas(self, dir_angles: np.ndarray) -> typing.Tuple[np.ndarray, np.ndarray]:
+    def _calc_deltas(
+        self, dir_angles: np.ndarray
+    ) -> typing.Tuple[np.ndarray, np.ndarray]:
         """
-        Расчет приразений координат по дир углам хода
+        Расчет приращений координат по дир углам хода
+
         :param dir_angles: Дир углы
-        :return: Прирахения по координатам X и Y
+
+        :return: Приращения по координатам X и Y
         """
         deltas_x: np.ndarray = self.layings * np.cos(np.radians(dir_angles))
         deltas_y: np.ndarray = self.layings * np.sin(np.radians(dir_angles))
         return deltas_x, deltas_y
 
-    def _calc_corrected_deltas(self, dir_angles: np.ndarray) -> typing.Tuple[np.ndarray, np.ndarray]:
+    def _calc_corrected_deltas(
+        self, dir_angles: np.ndarray
+    ) -> typing.Tuple[np.ndarray, np.ndarray]:
         """
         Расчет приращений координат с введенными поправками
+
         :param dir_angles: Дир углы хода
+
         :return: Приращения по координатам X и Y с поправками
         """
         deltas_x, deltas_y = self._calc_deltas(dir_angles)
@@ -186,12 +216,15 @@ class TraverseAdjustment:
         corrected_delta_y = np.round(deltas_y + correction_to_deltas_y, 3)
         return corrected_delta_x, corrected_delta_y
 
-    def _calc_coordinates(self, deltas_x: np.ndarray, deltas_y: np.ndarray) -> typing.Tuple[
-                            typing.List[float], typing.List[float]]:
+    def _calc_coordinates(
+        self, deltas_x: np.ndarray, deltas_y: np.ndarray
+    ) -> typing.Tuple[typing.List[float], typing.List[float]]:
         """
         Расчет координат пунктов хода
+
         :param deltas_x: Приращения по X
         :param deltas_y: Приращения по Y
+
         :return: X и Y координаты хода
         """
 
@@ -210,11 +243,16 @@ class TraverseAdjustment:
 
     def adjust(self) -> typing.List[Point2D]:
         """
-        Раздельное уравнивание простого теодеолитного хода
+        Раздельное уравнивание простого теодолитного хода
+
         :return: Уравненные координаты пунктов хода
         """
-        self.angles = self._calc_corrected_angles(theory_sum=self._calc_theory_angles_sum())
-        deltas_x, deltas_y = self._calc_corrected_deltas(dir_angles=self._calc_dir_angles())
+        self.angles = self._calc_corrected_angles(
+            theory_sum=self._calc_theory_angles_sum()
+        )
+        deltas_x, deltas_y = self._calc_corrected_deltas(
+            dir_angles=self._calc_dir_angles()
+        )
         x_coordinates, y_coordinates = self._calc_coordinates(deltas_x, deltas_y)
 
         points = [Point2D(x, y) for x, y in zip(x_coordinates, y_coordinates)]

@@ -1,10 +1,11 @@
 import pytest
 
-from pygeoguz.simplegeo import *
+from pygeoguz.simplegeo import ground, _ground
 
 
 def test_ground():
     assert ground(15.45, 1) == 15.4
+    assert ground(2.345, 2) == 2.34
     assert ground(15.55, 1) == 15.6
     assert ground(15.100, 2) == 15.1
     assert ground(15.445, 4) == 15.445
